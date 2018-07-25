@@ -65,7 +65,7 @@ With just being trained on one episode, the scripts generated are pretty legible
 
 I am very pleased with the results, it was much better than I expected. The size of the network is decent, with two 400 unit LSTM layers and 300 nodes for the embedding layer. The model took about 4 hours and 15 minutes to train on a NVIDIA GTX 1060. With these results, I expect that if I had the time and power, that training on a few episodes, or all 600 episodes could yield some very high quality script creation.
 
-With training the model, I used the Adam optimizer and sparse_categorical_crossentropy as the loss. This loss function is nice since it doesn't require the labels to be one-hot encodded, which with a large vocabulary would be very computationally expensive.
+With training the model, I used the Adam optimizer and sparse_categorical_crossentropy as the loss. This loss function is nice since it doesn't require the labels to be one-hot encoded, which with a large vocabulary would be very computationally expensive.
 
 ### Running the model
 Simply set the hyperparameters at the top of simpson_script_gen.py, and also change the path to where the script you want to train on is stored if you want to use your own script. Then run the model! It will save the model after training and also save the dictionaries to use so you can test the model with test_model.py.
