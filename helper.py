@@ -1,30 +1,37 @@
 import numpy as np
-import os, sys
+import os, sys, glob
 import pickle
 
 """
-Loads text from specified path, exits program if the file is not found.
+Loads text from specified path or directory, exits program if the file is not found.
 """
 def load_script(path):
 
-    if not os.path.isfile(path):
-        print("Error! {} was not found.".format(path))
+    if os.path.isfile(path):
+        with open(path, 'r') as file:
+            text = file.read()
+        return text
+    elif os.path.isdir(path):
+        text = ""
+        for file in glob.glob(path+"*.txt"):
+            with open(file, 'r') as f:
+                text = text + f.read()
+        return text
+    else:
+        print("Error! {} is not a file or path!")
         sys.exit(1)
 
-    with open(path, 'r') as file:
-        text = file.read()
-    return text
 
-#saves dictionary to file for use with test_model.py
-def save_dict(dict, filename):
-    dir = 'data/dicts/' + filename
+#saves dictionary to file in path for use with test_model.py
+def save_dict(dict, path, filename):
+    os.makedirs(path, exist_ok=True)
+    dir = path + filename
     with open(dir, 'wb') as file:
         pickle.dump(dict, file)
 
 #loads dictionary from file
-def load_dict(filename):
-    dir = 'data/dicts/' + filename
-    with open(dir, 'rb') as file:
+def load_dict(path):
+    with open(path, 'rb') as file:
          dict = pickle.load(file)
     return dict
 
@@ -65,3 +72,18 @@ def gen_sequences(int_text, seq_length):
         seq_text.append([word for word in seq_in])
         targets.append(seq_out)#target is next word after the sequence
     return np.array(seq_text, dtype=np.int32), np.array(targets, dtype=np.int32)
+
+"""
+helper function that instead of just doing argmax for prediction, actually taking a sample of top possible words
+takes a tempature which defines how many predictions to consider. lower means the word picked will be closer to the highest predicted word.
+"""
+def sample(prediction, temp=0):
+    if temp <= 0:
+        return np.argmax(prediction)
+    prediction = prediction[0]
+    prediction = np.asarray(prediction).astype('float64')
+    prediction = np.log(prediction) / temp
+    expo_prediction = np.exp(prediction)
+    prediction = expo_prediction / np.sum(expo_prediction)
+    probabilities = np.random.multinomial(1, prediction, 1)
+    return np.argmax(probabilities)

@@ -2,6 +2,7 @@
 import helper
 import numpy as np
 import time
+import argparse
 
 #pre-processing
 from keras.preprocessing.text import Tokenizer
@@ -16,15 +17,21 @@ from keras.layers import Embedding, LSTM
 from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras import optimizers as opt
 
+#argparser
+parser = argparse.ArgumentParser()
+parser.add_argument("-text_path", type=str, default="data/moes_tavern_lines.txt", help="path to a single text file or a directory contain text files")
+parser.add_argument("-seq_length", type=int, default=15, help="sequence length of input into the network")
+options = parser.parse_args()
+
+#load script text, replace with another file if you want.
+script_text = helper.load_script(options.text_path)
+
 #hyperparameters
 learn_rate = 0.001
 optimizer = opt.Adam(lr=learn_rate)
-sequence_length = 12
+sequence_length = int(options.seq_length)
 epochs = 200
 batch_size = 32
-
-#load script text, replace with another file if you want.
-script_text = helper.load_script('data/moes_tavern_lines.txt')
 
 #print some stats about the data
 print('----------Dataset Stats-----------')
@@ -58,9 +65,11 @@ vocab_length = len(word_to_int) + 1 #vocab_length for embedding needs to 1 one t
 print("Number of vocabulary: {}".format(vocab_length))
 
 #save dictionaries for use with testing model, also need to save sequence length since it needs to be the same when running test_model.py
-helper.save_dict(word_to_int, 'word_to_int.pkl')
-helper.save_dict(int_to_word, 'int_to_word.pkl')
-helper.save_dict(sequence_length, 'sequence_length.pkl')
+start_time = time.strftime("%a_%b_%d_%Y_%H:%M", time.localtime())
+save_path = "data/dicts/" + start_time + "/"
+helper.save_dict(word_to_int, save_path, 'word_to_int.pkl')
+helper.save_dict(int_to_word, save_path, 'int_to_word.pkl')
+helper.save_dict(sequence_length, save_path, 'sequence_length.pkl')
 
 #model definition
 model = Sequential()
@@ -86,7 +95,6 @@ print("Press enter to start training with these hyperparameters:")
 print("Learn rate: {}, Sequence Length: {}, Epochs: {}, Batch Size: {}".format(learn_rate, sequence_length, epochs, batch_size))
 input("\n")
 #training:
-start_time = time.strftime("%a_%b_%d_%Y_%H:%M", time.localtime())
 #view tensorboard with command: tensorboard --logdir=tensorboard_logs
 ten_board = TensorBoard(log_dir='tensorboard_logs/{}'.format(start_time), write_images=True)
 weight_save_path = 'saved_weights/model.best.weights.hdf5'
@@ -98,19 +106,6 @@ model.fit(int_script_text, targets, epochs=epochs, batch_size=batch_size, callba
 print("Loading best weights and saving model in {}".format('saved_models/model.{}.h5'.format(start_time)))
 model.load_weights(weight_save_path)
 model.save('saved_models/model.{}.h5'.format(start_time))
-
-#helper function that instead of just doing argmax for prediction, actually taking a sample of top possible words
-#takes a tempature which defines how many predictions to consider. lower means the word picked will be closer to the highest predicted word.
-def sample(prediction, temp=1.0):
-    if temp <= 0:
-        return np.argmax(prediction)
-    prediction = prediction[0]
-    prediction = np.asarray(prediction).astype('float64')
-    prediction = np.log(prediction) / temp
-    expo_prediction = np.exp(prediction)
-    prediction = expo_prediction / np.sum(expo_prediction)
-    probabilities = np.random.multinomial(1, prediction, 1)
-    return np.argmax(prediction)
 
 #generate new script
 def generate_text(seed_text, num_words):
@@ -125,13 +120,14 @@ def generate_text(seed_text, num_words):
         int_text = pad_sequences([int_text], maxlen=sequence_length)
         #predict next word:
         prediction = model.predict(int_text, verbose=0)
-        output_word = int_to_word[sample(prediction, temp=0.3)]
+        output_word = int_to_word[helper.sample(prediction, temp=0.3)]
         #append to the result
         input_text += ' ' + output_word
     #convert tokenized punctuation and other characters back
     result = helper.untokenize_punctuation(input_text)
     return result
 
-seed = "Marge_Simpson:"
-input("Press enter to generate some text with seed {}\n".format(seed))
-print(generate_text(seed, 200))
+seed = input("Enter seed to generate text.\n")
+
+if seed != "":
+    print(generate_text(seed, 200))

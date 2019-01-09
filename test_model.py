@@ -3,35 +3,20 @@ from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 import sys, os
 import helper
-
-#load dictionaries for converting text to ints and back
-word_to_int = helper.load_dict('word_to_int.pkl')
-int_to_word = helper.load_dict('int_to_word.pkl')
-sequence_length = helper.load_dict('sequence_length.pkl')
+import argparse
 
 #load in model user specified
-if sys.argv[1] == "" or sys.argv[1] == "-h":
-    print("Usage: test_model.py /path/to/model")
-    sys.exit(0)
-elif not os.path.isfile(sys.argv[1]):
-    print("Error, file does not exist.")
-    sys.exit(1)
+parser = argparse.ArgumentParser()
+parser.add_argument("-model_path", type=str, help="path to saved model")
+parser.add_argument("-dict_path", type=str, default="/data/dicts/", help="directory path to dictionaries for converting words to tokens")
+options = parser.parse_args()
 
-model = load_model(sys.argv[1])
+model = load_model(options.model_path)
 
-#same functions from simpson_script_gen:
-#helper function that instead of just doing argmax for prediction, actually taking a sample of top possible words
-#takes a tempature which defines how many predictions to consider. lower means the word picked will be closer to the highest predicted word.
-def sample(prediction, temp=1.0):
-    if temp <= 0:
-        return np.argmax(prediction)
-    prediction = prediction[0]
-    prediction = np.asarray(prediction).astype('float64')
-    prediction = np.log(prediction) / temp
-    expo_prediction = np.exp(prediction)
-    prediction = expo_prediction / np.sum(expo_prediction)
-    probabilities = np.random.multinomial(1, prediction, 1)
-    return np.argmax(prediction)
+#load dictionaries for converting text to ints and back
+word_to_int = helper.load_dict(options.dict_path + 'word_to_int.pkl')
+int_to_word = helper.load_dict(options.dict_path + 'int_to_word.pkl')
+sequence_length = helper.load_dict(options.dict_path + 'sequence_length.pkl')
 
 #generate new script
 def generate_text(seed_text, num_words):
@@ -46,7 +31,7 @@ def generate_text(seed_text, num_words):
         int_text = pad_sequences([int_text], maxlen=sequence_length)
         #predict next word:
         prediction = model.predict(int_text, verbose=0)
-        output_word = int_to_word[sample(prediction, temp=0.3)]
+        output_word = int_to_word[helper.sample(prediction, temp=0.3)]
         #append to the result
         input_text += ' ' + output_word
     #convert tokenized punctuation and other characters back
