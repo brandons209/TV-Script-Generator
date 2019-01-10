@@ -8,7 +8,8 @@ import argparse
 #load in model user specified
 parser = argparse.ArgumentParser()
 parser.add_argument("-model_path", type=str, help="path to saved model")
-parser.add_argument("-dict_path", type=str, default="/data/dicts/", help="directory path to dictionaries for converting words to tokens")
+parser.add_argument("-dict_path", type=str, default="data/dicts/", help="directory path to dictionaries for converting words to tokens")
+parser.add_argument("-temp", type=float, default="0.3", help="temperature value for choosing next word when generating, a value of 0 will always choose the word with the highest probability.")
 options = parser.parse_args()
 
 model = load_model(options.model_path)
@@ -31,7 +32,7 @@ def generate_text(seed_text, num_words):
         int_text = pad_sequences([int_text], maxlen=sequence_length)
         #predict next word:
         prediction = model.predict(int_text, verbose=0)
-        output_word = int_to_word[helper.sample(prediction, temp=0.3)]
+        output_word = int_to_word[helper.sample(prediction, temp=options.temp)]
         #append to the result
         input_text += ' ' + output_word
     #convert tokenized punctuation and other characters back

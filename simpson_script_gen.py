@@ -14,7 +14,7 @@ from keras.layers import Dropout, Dense
 from keras.layers import Embedding, LSTM
 
 #training
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras import optimizers as opt
 
 #argparser
@@ -99,8 +99,9 @@ input("\n")
 ten_board = TensorBoard(log_dir='tensorboard_logs/{}'.format(start_time), write_images=True)
 weight_save_path = 'saved_weights/model.best.weights.hdf5'
 checkpointer = ModelCheckpoint(weight_save_path, monitor='loss', verbose=1, save_best_only=True, save_weights_only=True)
+early_stop = EarlyStopping(monitor='loss', patience=5, verbose=1, restore_best_weights=True)
 print("Tensorboard logs for this run are in: {}, weights will be saved in {}\n".format('tensorboard_logs/{}'.format(start_time), weight_save_path))
-model.fit(int_script_text, targets, epochs=epochs, batch_size=batch_size, callbacks=[checkpointer, ten_board])
+model.fit(int_script_text, targets, epochs=epochs, batch_size=batch_size, callbacks=[checkpointer, ten_board, early_stop])
 
 #load best weights and saved model
 print("Loading best weights and saving model in {}".format('saved_models/model.{}.h5'.format(start_time)))
