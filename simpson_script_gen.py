@@ -21,6 +21,7 @@ from keras import optimizers as opt
 parser = argparse.ArgumentParser()
 parser.add_argument("-text_path", type=str, default="data/moes_tavern_lines.txt", help="path to a single text file or a directory contain text files")
 parser.add_argument("-seq_length", type=int, default=15, help="sequence length of input into the network")
+parser.add_argument("-continue", type=str, default=None, help="path to weights file if continuing training.")
 options = parser.parse_args()
 
 #load script text, replace with another file if you want.
@@ -67,9 +68,11 @@ print("Number of vocabulary: {}".format(vocab_length))
 #save dictionaries for use with testing model, also need to save sequence length since it needs to be the same when running test_model.py
 start_time = time.strftime("%a_%b_%d_%Y_%H:%M", time.localtime())
 save_path = "data/dicts/" + start_time + "/"
-helper.save_dict(word_to_int, save_path, 'word_to_int.pkl')
-helper.save_dict(int_to_word, save_path, 'int_to_word.pkl')
-helper.save_dict(sequence_length, save_path, 'sequence_length.pkl')
+
+if options.continue is None:
+    helper.save_dict(word_to_int, save_path, 'word_to_int.pkl')
+    helper.save_dict(int_to_word, save_path, 'int_to_word.pkl')
+    helper.save_dict(sequence_length, save_path, 'sequence_length.pkl')
 
 #model definition
 model = Sequential()
@@ -101,6 +104,8 @@ weight_save_path = 'saved_weights/model.best.weights.hdf5'
 checkpointer = ModelCheckpoint(weight_save_path, monitor='loss', verbose=1, save_best_only=True, save_weights_only=True)
 early_stop = EarlyStopping(monitor='loss', patience=5, verbose=1, restore_best_weights=True)
 print("Tensorboard logs for this run are in: {}, weights will be saved in {}\n".format('tensorboard_logs/{}'.format(start_time), weight_save_path))
+if options.contine is not None:
+    model.load_weights(options.continue)
 model.fit(int_script_text, targets, epochs=epochs, batch_size=batch_size, callbacks=[checkpointer, ten_board, early_stop])
 
 #load best weights and saved model
